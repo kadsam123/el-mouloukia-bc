@@ -62,7 +62,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'el-mouloukia-bc';
-const apiKey = ""; // Insert your Google AI Studio Gemini API key here
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 
 const MARKET_CONFIG = {
