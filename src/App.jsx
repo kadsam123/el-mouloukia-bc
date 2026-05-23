@@ -63,6 +63,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'el-mouloukia-bc';
 const apiKey = ""; // Insert your Google AI Studio Gemini API key here
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || '';
 
 const MARKET_CONFIG = {
   name: 'Constantine',
@@ -188,6 +189,21 @@ export default function App() {
   const [editObject, setEditObject] = useState(null);
   const [showArchival, setShowArchival] = useState(false);
   const [analyzingId, setAnalyzingId] = useState(null);
+
+  const handleAdminLogin = () => {
+    if (!ADMIN_PASSWORD) {
+      setErrorMessage('Admin password is not configured. Set VITE_ADMIN_PASSWORD in your environment.');
+      return;
+    }
+
+    if (adminKey === ADMIN_PASSWORD) {
+      setIsAdminAuthenticated(true);
+      setErrorMessage('');
+      return;
+    }
+
+    setErrorMessage('Invalid admin key.');
+  };
 
   const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
 
@@ -777,7 +793,7 @@ export default function App() {
                 <div className="space-y-6">
                   <h3 className="text-xl font-black uppercase tracking-tighter">Protocol Activation</h3>
                   <input type="password" placeholder="Key" className="w-full p-5 bg-stone-50 rounded-2xl text-center text-2xl font-serif outline-none border border-transparent focus:border-stone-100 transition-all" value={adminKey} onChange={(e) => setAdminKey(e.target.value)} dir="ltr" />
-                  <button onClick={() => { if (adminKey === 'constantine-2026') setIsAdminAuthenticated(true); }} className="w-full bg-[#2d1e1a] text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Activate Session</button>
+                  <button onClick={handleAdminLogin} className="w-full bg-[#2d1e1a] text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl">Activate Session</button>
                 </div>
               </div>
             ) : (
