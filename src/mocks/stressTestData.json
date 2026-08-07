@@ -1,0 +1,66 @@
+[
+  {
+    "hurdle_id": "H-EBIKE-2026-05-A",
+    "ideaTrack": "micro-factory_e-bike_ckd",
+    "title_raw": "E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp",
+    "problemStatement": "Founders can assemble pilot units, but scaling beyond 20 units/month is blocked by contradictory guidance from APC zoning desk, customs inspectors requesting alternate HS classification, and repeated re-validation of imported torque sensors.",
+    "sector_hint": "logistics",
+    "frictionCostMonthlyDZD": "~3,850,000 DZD/month including storage penalties + idle payroll + broker retainers",
+    "instance_last": "April 2026: 2 containers held 19 days at dry port; pre-clearance file bounced 3 times due to mismatch between BOM and French-translated technical datasheets.",
+    "regulatoryNoise": [
+      "CNRC activity code extension pending",
+      "DRIRE conformity backlog",
+      "Municipal occupation permit requires revised fire-flow plan",
+      "Customs asks for updated CE declarations notarized copy"
+    ],
+    "administrative_noise": {
+      "languages": ["Arabic", "French", "English"],
+      "duplicateForms": 7,
+      "approval_touchpoints": 11,
+      "missing_docs_seen": ["vendor affidavit", "warehouse lease addendum", "insurance rider"]
+    },
+    "notes_dump": "\\nCall notes are messy: investor push for July demo, supplier threatening to re-route stock, one ministry portal outage created deadline miss; team currently using 4 separate WhatsApp threads to track permit tasks."
+  },
+  {
+    "hurdle_id": "H-COLDCHAIN-2026-05-B",
+    "startupConcept": "agri cold-chain retrofit + predictive maintenance pods",
+    "headline": "Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits",
+    "desc": "The startup serves poultry and dairy corridors but cannot guarantee compressor spare parts lead-time. Regional checkpoints require inconsistent paper manifests and temperature logs from multiple systems.",
+    "sector_hint": "agriculture",
+    "frictionCostMonthlyDZD": "2 140 000 DZD (fuel detours + spoilage + emergency rental units)",
+    "incidentSnapshot": "May 2026: three delivery routes canceled after audit dispute over handwritten cleaning certificate despite ERP export being available.",
+    "bureaucracyNoise": [
+      "Veterinary inspection checklist revised without notice",
+      "Transport authority requests stamped route declarations",
+      "Insurer requires extra telemetry evidence before claim processing"
+    ],
+    "opsNoise": {
+      "manual_reentries_per_week": 43,
+      "avg_dispatch_delay_hours": 16,
+      "systems": ["legacy ERP", "Excel", "paper ledger", "driver WhatsApp uploads"]
+    },
+    "freeform": "Potential upside is huge, but current process maturity is low and local maintenance vendors demand prepayment in hard currency for critical parts."
+  },
+  {
+    "hurdle_id": "H-SUPPLYMESH-2026-05-C",
+    "venture": "distributed supplier mesh for light-industrial startups",
+    "title": "Supplier-onboarding friction: tax IDs mismatch, bank KYC lag, and cross-wilaya transport permits break launch timelines",
+    "description_dirty": "New startup operators trying to onboard 30+ suppliers are blocked by incomplete fiscal records, delayed bank account verification, and permit windows that do not align with procurement cycles.",
+    "sector_hint": "biz",
+    "frictionCostMonthlyDZD": "Approx. 1,760,000 DZD plus hidden opportunity cost",
+    "last_real_case": "March 2026: launch delayed 5 weeks after two strategic suppliers failed onboarding due to expired tax extract and missing notarized statutes.",
+    "regAdminNoise": [
+      "Bank compliance queue > 14 business days",
+      "Tax extract expiration confusion",
+      "Permit dependency map undocumented",
+      "Inconsistent chamber-of-commerce validation requirements"
+    ],
+    "meta_noise": {
+      "attachments_count": 58,
+      "email_threads": 19,
+      "escalations": 6,
+      "rejected_submissions": 9
+    },
+    "rawTextBlob": "\\nFounders currently rely on ad-hoc intermediaries to accelerate paperwork. Risk concentration is high because only two coordinators understand the full multi-agency sequence."
+  }
+]

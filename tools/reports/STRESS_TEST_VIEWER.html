@@ -1,0 +1,985 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Stress Test Viewer</title>
+  <style>
+    :root {
+      --bg: #0b1017;
+      --bg-elev: #101927;
+      --panel: #131f30;
+      --border: #243449;
+      --text: #dce8f7;
+      --muted: #88a0bd;
+      --accent: #6dd1ff;
+      --ok: #60d4aa;
+      --warn: #f6c167;
+      --danger: #ff7b99;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 32px;
+      background: radial-gradient(circle at top right, #1f2f49 0%, var(--bg) 45%), var(--bg);
+      color: var(--text);
+      font-family: "Segoe UI", "Inter", sans-serif;
+    }
+    .shell {
+      max-width: 1260px;
+      margin: 0 auto;
+      display: grid;
+      gap: 20px;
+    }
+    .hero {
+      background: linear-gradient(145deg, rgba(109, 209, 255, 0.12), rgba(96, 212, 170, 0.08));
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 24px;
+    }
+    .hero h1 { margin: 0; font-size: 30px; }
+    .hero p { margin: 10px 0 0; color: var(--muted); }
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .health-bar {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      background: rgba(6, 12, 20, 0.55);
+    }
+    .health-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .health-top small { color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
+    .health-chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .health-ok .health-chip { background: rgba(96, 212, 170, 0.2); color: #7cf3c6; }
+    .health-warn .health-chip { background: rgba(246, 193, 103, 0.2); color: #ffd08a; }
+    .health-danger .health-chip { background: rgba(255, 123, 153, 0.2); color: #ff9eb4; }
+    .health-track {
+      width: 100%;
+      height: 11px;
+      border-radius: 999px;
+      background: #091120;
+      border: 1px solid #22354f;
+      overflow: hidden;
+    }
+    .health-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ff7b99 0%, #f6c167 55%, #60d4aa 100%);
+    }
+    .health-note {
+      margin-top: 8px;
+      color: #9eb7d5;
+      font-size: 12px;
+    }
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .kpi-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px;
+      background: rgba(8, 13, 22, 0.58);
+    }
+    .kpi-item span { display: block; color: var(--muted); font-size: 11px; }
+    .kpi-item strong { display: block; margin-top: 3px; font-size: 18px; }
+    .explain-tag {
+      display: inline-flex;
+      align-items: center;
+      margin-top: 6px;
+      padding: 3px 7px;
+      border-radius: 999px;
+      border: 1px solid #2c4669;
+      background: rgba(18, 30, 47, 0.8);
+      color: #9dc0e5;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .explain-tag::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      margin-right: 6px;
+      box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.18);
+    }
+    .kpi-state-good::before { background: #60d4aa; }
+    .kpi-state-warn::before { background: #f6c167; }
+    .kpi-state-bad::before { background: #ff7b99; }
+    .indicator-guide {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(7, 12, 20, 0.62);
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .indicator-guide h4 {
+      margin: 0 0 7px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #9fc4ea;
+    }
+    .indicator-guide ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 6px;
+    }
+    .indicator-guide li {
+      font-size: 12px;
+      color: #c5d7ec;
+      line-height: 1.45;
+      border: 1px solid #22344d;
+      border-radius: 8px;
+      padding: 7px 8px;
+      background: rgba(10, 18, 30, 0.8);
+    }
+    .indicator-guide b {
+      color: #dff0ff;
+      letter-spacing: 0.02em;
+    }
+    .ops-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 2px;
+    }
+    .ops-card {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(8, 14, 22, 0.52);
+      padding: 12px;
+    }
+    .ops-card h3 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #9fc4ea;
+    }
+    .tax-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 6px;
+    }
+    .tax-item {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 9px;
+      font-size: 12px;
+    }
+    .tax-item strong { font-size: 14px; }
+    .tax-ok { background: rgba(96, 212, 170, 0.14); color: #82eec8; }
+    .tax-warn { background: rgba(246, 193, 103, 0.14); color: #ffd293; }
+    .tax-danger { background: rgba(255, 123, 153, 0.14); color: #ff9fbb; }
+    .slo-stack {
+      display: grid;
+      gap: 7px;
+    }
+    .slo-row {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 9px;
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+    }
+    .slo-row strong { font-size: 11px; letter-spacing: 0.08em; }
+    .slo-row em { font-style: normal; color: var(--muted); }
+    .slo-pass { background: rgba(96, 212, 170, 0.12); color: #8de9c9; }
+    .slo-fail { background: rgba(255, 123, 153, 0.12); color: #ffa7be; }
+    .slo-footnote {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #9eb7d5;
+      line-height: 1.45;
+      border-top: 1px dashed #2a3f5c;
+      padding-top: 8px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .stats div {
+      background: rgba(10, 16, 24, 0.45);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .stats strong { display: block; font-size: 16px; margin-top: 4px; }
+    details.case-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    details.case-card + details.case-card { margin-top: 12px; }
+    summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px;
+      background: rgba(9, 14, 24, 0.5);
+    }
+    summary::-webkit-details-marker { display: none; }
+    .summary-left h2 { margin: 4px 0 0; font-size: 18px; }
+    .case-index { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .summary-right {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .mode-badge, .confidence, .timing-pill {
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .badge-agent { color: #07231d; background: var(--ok); }
+    .badge-fallback { color: #300b15; background: var(--danger); }
+    .confidence { border-color: #35567b; color: #b8d8fb; }
+    .timing-pill { border-color: #59693a; color: #f9d88f; }
+    .card-content { padding: 18px; display: grid; gap: 14px; }
+    section h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #9fc4ea;
+    }
+    .timings-panel {
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+    .timings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .timings-grid div {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(2, 8, 16, 0.45);
+    }
+    .timings-grid small { color: var(--muted); display: block; margin-bottom: 4px; }
+    .timings-grid strong { font-size: 16px; color: #f8d584; }
+    .timeline-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: rgba(7, 13, 22, 0.6);
+    }
+    .timeline-row p { margin: 0; color: #d1deef; line-height: 1.5; }
+    .timeline-index {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #02070f;
+      margin-top: 2px;
+    }
+    .tone-cyan .timeline-index { background: #60d4ff; }
+    .tone-mint .timeline-index { background: #6fe1b0; }
+    .tone-amber .timeline-index { background: #f6c167; }
+    .tone-violet .timeline-index { background: #b89cff; }
+    .tone-rose .timeline-index { background: #ff7b99; }
+    .tone-indigo .timeline-index { background: #8ca4ff; }
+    .tone-slate .timeline-index { background: #93a6be; }
+    .rationale { margin: 0; color: #c5d4e8; line-height: 1.6; }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 8px;
+    }
+    .meta-grid span {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      color: #c9d8ea;
+      background: rgba(8, 14, 22, 0.55);
+      font-size: 13px;
+    }
+    pre {
+      margin: 0;
+      background: #080d15;
+      border: 1px solid #1f2b40;
+      border-radius: 10px;
+      padding: 12px;
+      max-height: 280px;
+      overflow: auto;
+      color: #9ac0eb;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="hero">
+      <h1>AI Stress Harness Viewer</h1>
+      <p>Generated 2026-05-28T01:14:42.055Z | Local static report with full JSON case traces.</p>
+      <div class="dashboard-grid health-warn">
+        <section class="health-bar">
+          <div class="health-top">
+            <small>Run Health Bar</small>
+            <span class="health-chip">DEGRADED</span>
+          </div>
+          <div class="health-track">
+            <div class="health-fill" style="width:50.0%"></div>
+          </div>
+          <p class="health-note">SLO score 2/4 | Success 33.3% | Fallback 66.7%</p>
+        </section>
+
+        <section class="kpi-strip">
+          <div class="kpi-item"><span>Success Rate</span><strong>33.3%</strong><span class="explain-tag kpi-state-bad">Agent-enriched share</span></div>
+          <div class="kpi-item"><span>Fallback Rate</span><strong>66.7%</strong><span class="explain-tag kpi-state-bad">Fail-open pressure</span></div>
+          <div class="kpi-item"><span>Retry Rate</span><strong>66.7%</strong><span class="explain-tag kpi-state-bad">Transient instability</span></div>
+          <div class="kpi-item"><span>P95 Total</span><strong>7778.26ms</strong><span class="explain-tag kpi-state-good">Tail latency risk</span></div>
+        </section>
+      </div>
+
+      <section class="indicator-guide">
+        <h4>Indicator Guide</h4>
+        <ul>
+          <li><b>Success Rate</b>: Percentage of cases that completed in agent-enriched mode. Higher is better.</li>
+          <li><b>Fallback Rate</b>: Percentage of cases forced into deterministic-fallback due to live AI failure or guardrails.</li>
+          <li><b>Retry Rate</b>: Share of cases requiring more than one attempt, signaling provider volatility.</li>
+          <li><b>P95 Total</b>: 95th percentile total execution time. Captures user-visible worst-case latency.</li>
+        </ul>
+      </section>
+
+      <div class="ops-grid">
+        <section class="ops-card">
+          <h3>Error Taxonomy</h3>
+          <ul class="tax-list"><li class="tax-item tax-warn"><span>rate_limited_429</span><strong>2</strong></li></ul>
+        </section>
+        <section class="ops-card">
+          <h3>SLO Pass/Fail</h3>
+          <div class="slo-stack">
+    <div class="slo-row slo-fail">
+      <span>Success rate &gt;= 95%</span>
+      <strong>FAIL</strong>
+      <em>33.3%</em>
+    </div>
+  
+    <div class="slo-row slo-fail">
+      <span>Fallback rate &lt;= 5%</span>
+      <strong>FAIL</strong>
+      <em>66.7%</em>
+    </div>
+  
+    <div class="slo-row slo-pass">
+      <span>P95 total &lt;= 12000ms</span>
+      <strong>PASS</strong>
+      <em>7778.26ms</em>
+    </div>
+  
+    <div class="slo-row slo-pass">
+      <span>Schema failures = 0</span>
+      <strong>PASS</strong>
+      <em>0</em>
+    </div>
+  </div>
+          <p class="slo-footnote">SLO panel maps policy thresholds to current run outcomes so degraded health can be traced to specific breaches.</p>
+        </section>
+      </div>
+
+      <div class="stats">
+        <div><small>Total Cases</small><strong>3</strong></div>
+        <div><small>Suite Duration</small><strong>18489.83 ms</strong></div>
+        <div><small>Agent-Enriched</small><strong>1</strong></div>
+        <div><small>Fallback</small><strong>2</strong></div>
+        <div><small>Schema Failures</small><strong>0</strong></div>
+        <div><small>P50 Total</small><strong>5390.49 ms</strong></div>
+      </div>
+    </header>
+
+    <section>
+      <details class="case-card" open>
+        <summary>
+          <div class="summary-left">
+            <span class="case-index">Case 1</span>
+            <h2>H-EBIKE-2026-05-A</h2>
+          </div>
+          <div class="summary-right">
+            <span class="mode-badge badge-fallback">deterministic-fallback</span>
+            <span class="confidence">Confidence 1</span>
+            <span class="timing-pill">Total 5317.86ms</span>
+          </div>
+        </summary>
+
+        <div class="card-content">
+          <section class="timings-panel">
+            <h3>Execution Timings</h3>
+            <div class="timings-grid">
+              <div><small>Normalize</small><strong>0.57ms</strong></div>
+              <div><small>Score</small><strong>0.46ms</strong></div>
+              <div><small>Simulation</small><strong>5316.82ms</strong></div>
+              <div><small>Total</small><strong>5317.86ms</strong></div>
+            </div>
+          </section>
+
+          <section>
+            <h3>Milestone Timeline</h3>
+            <ul class="timeline-list">
+        <li class="timeline-row tone-cyan">
+          <span class="timeline-index">1</span>
+          <p>T+0-7d: build compliance map and isolate approval blockers for &quot;E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp&quot;</p>
+        </li>
+      
+        <li class="timeline-row tone-mint">
+          <span class="timeline-index">2</span>
+          <p>T+8-14d: launch dual-track remediation (documentation cleanup + operations quick wins)</p>
+        </li>
+      
+        <li class="timeline-row tone-amber">
+          <span class="timeline-index">3</span>
+          <p>T+15-30d: assign lead execution to Nadim Khelifi (Cross-Border Logistics Architect) with weekly measurable checkpoints</p>
+        </li>
+      
+        <li class="timeline-row tone-violet">
+          <span class="timeline-index">4</span>
+          <p>T+31-45d: validate friction-cost reduction and lock governance controls for replication</p>
+        </li>
+      </ul>
+          </section>
+
+          <section>
+            <h3>Rationale</h3>
+            <p class="rationale">Top deterministic alignment points to log substrate with resonance 12.</p>
+          </section>
+
+          <section>
+            <h3>Live AI Metadata</h3>
+            
+        <div class="meta-grid">
+          <span><strong>Model</strong>: gemini-2.5-flash</span>
+          <span><strong>Attempts</strong>: 3</span>
+          <span><strong>Last Code</strong>: 429</span>
+          <span><strong>Status</strong>: 429</span>
+        </div>
+      
+          </section>
+
+          <section>
+            <h3>Raw Case JSON</h3>
+            <pre>{
+  &quot;traceId&quot;: &quot;H-EBIKE-2026-05-A&quot;,
+  &quot;rawInput&quot;: {
+    &quot;hurdle_id&quot;: &quot;H-EBIKE-2026-05-A&quot;,
+    &quot;ideaTrack&quot;: &quot;micro-factory_e-bike_ckd&quot;,
+    &quot;title_raw&quot;: &quot;E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp&quot;,
+    &quot;problemStatement&quot;: &quot;Founders can assemble pilot units, but scaling beyond 20 units/month is blocked by contradictory guidance from APC zoning desk, customs inspectors requesting alternate HS classification, and repeated re-validation of imported torque sensors.&quot;,
+    &quot;sector_hint&quot;: &quot;logistics&quot;,
+    &quot;frictionCostMonthlyDZD&quot;: &quot;~3,850,000 DZD/month including storage penalties + idle payroll + broker retainers&quot;,
+    &quot;instance_last&quot;: &quot;April 2026: 2 containers held 19 days at dry port; pre-clearance file bounced 3 times due to mismatch between BOM and French-translated technical datasheets.&quot;,
+    &quot;regulatoryNoise&quot;: [
+      &quot;CNRC activity code extension pending&quot;,
+      &quot;DRIRE conformity backlog&quot;,
+      &quot;Municipal occupation permit requires revised fire-flow plan&quot;,
+      &quot;Customs asks for updated CE declarations notarized copy&quot;
+    ],
+    &quot;administrative_noise&quot;: {
+      &quot;languages&quot;: [
+        &quot;Arabic&quot;,
+        &quot;French&quot;,
+        &quot;English&quot;
+      ],
+      &quot;duplicateForms&quot;: 7,
+      &quot;approval_touchpoints&quot;: 11,
+      &quot;missing_docs_seen&quot;: [
+        &quot;vendor affidavit&quot;,
+        &quot;warehouse lease addendum&quot;,
+        &quot;insurance rider&quot;
+      ]
+    },
+    &quot;notes_dump&quot;: &quot;\\nCall notes are messy: investor push for July demo, supplier threatening to re-route stock, one ministry portal outage created deadline miss; team currently using 4 separate WhatsApp threads to track permit tasks.&quot;
+  },
+  &quot;mappedPayload&quot;: {
+    &quot;title&quot;: &quot;E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp&quot;,
+    &quot;description&quot;: &quot;Founders can assemble pilot units, but scaling beyond 20 units/month is blocked by contradictory guidance from APC zoning desk, customs inspectors requesting alternate HS classification, and repeated re-validation of imported torque sensors.&quot;,
+    &quot;sector&quot;: &quot;log&quot;,
+    &quot;frictionCost&quot;: &quot;3850000&quot;,
+    &quot;instance&quot;: &quot;April 2026: 2 containers held 19 days at dry port; pre-clearance file bounced 3 times due to mismatch between BOM and French-translated technical datasheets.&quot;
+  },
+  &quot;normalizedOutput&quot;: {
+    &quot;ok&quot;: true,
+    &quot;normalized&quot;: {
+      &quot;title&quot;: &quot;E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp&quot;,
+      &quot;description&quot;: &quot;Founders can assemble pilot units, but scaling beyond 20 units/month is blocked by contradictory guidance from APC zoning desk, customs inspectors requesting alternate HS classification, and repeated re-validation of imported torque sensors.&quot;,
+      &quot;sector&quot;: &quot;log&quot;,
+      &quot;frictionCost&quot;: &quot;3850000&quot;,
+      &quot;instance&quot;: &quot;April 2026: 2 containers held 19 days at dry port; pre-clearance file bounced 3 times due to mismatch between BOM and French-translated technical datasheets.&quot;
+    },
+    &quot;id&quot;: null
+  },
+  &quot;scoringOutput&quot;: {
+    &quot;candidateCount&quot;: 3,
+    &quot;sourceCount&quot;: 5,
+    &quot;candidates&quot;: [
+      {
+        &quot;id&quot;: &quot;exp-log-01&quot;,
+        &quot;name&quot;: &quot;Nadim Khelifi&quot;,
+        &quot;title&quot;: &quot;Cross-Border Logistics Architect&quot;,
+        &quot;sector&quot;: &quot;log&quot;,
+        &quot;resonance&quot;: 12,
+        &quot;confidenceScore&quot;: null
+      },
+      {
+        &quot;id&quot;: &quot;exp-manuf-01&quot;,
+        &quot;name&quot;: &quot;Sara Belhamri&quot;,
+        &quot;title&quot;: &quot;Industrialization Program Manager&quot;,
+        &quot;sector&quot;: &quot;manuf&quot;,
+        &quot;resonance&quot;: 4,
+        &quot;confidenceScore&quot;: null
+      },
+      {
+        &quot;id&quot;: &quot;exp-biz-01&quot;,
+        &quot;name&quot;: &quot;Imene Louafi&quot;,
+        &quot;title&quot;: &quot;Regulatory Operations Lead&quot;,
+        &quot;sector&quot;: &quot;biz&quot;,
+        &quot;resonance&quot;: 2,
+        &quot;confidenceScore&quot;: null
+      }
+    ]
+  },
+  &quot;simulation&quot;: {
+    &quot;mode&quot;: &quot;deterministic-fallback&quot;,
+    &quot;confidenceScore&quot;: 1,
+    &quot;milestones&quot;: [
+      &quot;T+0-7d: build compliance map and isolate approval blockers for \&quot;E-bike CKD micro-factory startup blocked between municipal land-use letter, customs HS-code ambiguity, and delayed DRIRE conformity stamp\&quot;&quot;,
+      &quot;T+8-14d: launch dual-track remediation (documentation cleanup + operations quick wins)&quot;,
+      &quot;T+15-30d: assign lead execution to Nadim Khelifi (Cross-Border Logistics Architect) with weekly measurable checkpoints&quot;,
+      &quot;T+31-45d: validate friction-cost reduction and lock governance controls for replication&quot;
+    ],
+    &quot;rationale&quot;: &quot;Top deterministic alignment points to log substrate with resonance 12.&quot;,
+    &quot;liveAiError&quot;: &quot;{\&quot;error\&quot;:{\&quot;code\&quot;:429,\&quot;message\&quot;:\&quot;You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 31.538182458s.\&quot;,\&quot;status\&quot;:\&quot;RESOURCE_EXHAUSTED\&quot;,\&quot;details\&quot;:[{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.Help\&quot;,\&quot;links\&quot;:[{\&quot;description\&quot;:\&quot;Learn more about Gemini API quotas\&quot;,\&quot;url\&quot;:\&quot;https://ai.google.dev/gemini-api/docs/rate-limits\&quot;}]},{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.QuotaFailure\&quot;,\&quot;violations\&quot;:[{\&quot;quotaMetric\&quot;:\&quot;generativelanguage.googleapis.com/generate_content_free_tier_requests\&quot;,\&quot;quotaId\&quot;:\&quot;GenerateRequestsPerDayPerProjectPerModel-FreeTier\&quot;,\&quot;quotaDimensions\&quot;:{\&quot;location\&quot;:\&quot;global\&quot;,\&quot;model\&quot;:\&quot;gemini-2.5-flash\&quot;},\&quot;quotaValue\&quot;:\&quot;20\&quot;}]},{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.RetryInfo\&quot;,\&quot;retryDelay\&quot;:\&quot;31s\&quot;}]}}&quot;
+  },
+  &quot;liveAiMeta&quot;: {
+    &quot;model&quot;: &quot;gemini-2.5-flash&quot;,
+    &quot;attempts&quot;: 3,
+    &quot;lastErrorCode&quot;: 429,
+    &quot;lastErrorStatus&quot;: &quot;429&quot;,
+    &quot;retryExhausted&quot;: true
+  },
+  &quot;timings&quot;: {
+    &quot;normalize&quot;: &quot;0.57ms&quot;,
+    &quot;score&quot;: &quot;0.46ms&quot;,
+    &quot;simulation&quot;: &quot;5316.82ms&quot;,
+    &quot;total&quot;: &quot;5317.86ms&quot;
+  }
+}</pre>
+          </section>
+        </div>
+      </details>
+    
+      <details class="case-card" >
+        <summary>
+          <div class="summary-left">
+            <span class="case-index">Case 2</span>
+            <h2>H-COLDCHAIN-2026-05-B</h2>
+          </div>
+          <div class="summary-right">
+            <span class="mode-badge badge-fallback">deterministic-fallback</span>
+            <span class="confidence">Confidence 1</span>
+            <span class="timing-pill">Total 5390.49ms</span>
+          </div>
+        </summary>
+
+        <div class="card-content">
+          <section class="timings-panel">
+            <h3>Execution Timings</h3>
+            <div class="timings-grid">
+              <div><small>Normalize</small><strong>0.08ms</strong></div>
+              <div><small>Score</small><strong>0.19ms</strong></div>
+              <div><small>Simulation</small><strong>5390.22ms</strong></div>
+              <div><small>Total</small><strong>5390.49ms</strong></div>
+            </div>
+          </section>
+
+          <section>
+            <h3>Milestone Timeline</h3>
+            <ul class="timeline-list">
+        <li class="timeline-row tone-cyan">
+          <span class="timeline-index">1</span>
+          <p>T+0-7d: build compliance map and isolate approval blockers for &quot;Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits&quot;</p>
+        </li>
+      
+        <li class="timeline-row tone-mint">
+          <span class="timeline-index">2</span>
+          <p>T+8-14d: launch dual-track remediation (documentation cleanup + operations quick wins)</p>
+        </li>
+      
+        <li class="timeline-row tone-amber">
+          <span class="timeline-index">3</span>
+          <p>T+15-30d: assign lead execution to Yacine Mebarki (Cold-Chain Operations Specialist) with weekly measurable checkpoints</p>
+        </li>
+      
+        <li class="timeline-row tone-violet">
+          <span class="timeline-index">4</span>
+          <p>T+31-45d: validate friction-cost reduction and lock governance controls for replication</p>
+        </li>
+      </ul>
+          </section>
+
+          <section>
+            <h3>Rationale</h3>
+            <p class="rationale">Top deterministic alignment points to agri substrate with resonance 10.</p>
+          </section>
+
+          <section>
+            <h3>Live AI Metadata</h3>
+            
+        <div class="meta-grid">
+          <span><strong>Model</strong>: gemini-2.5-flash</span>
+          <span><strong>Attempts</strong>: 3</span>
+          <span><strong>Last Code</strong>: 429</span>
+          <span><strong>Status</strong>: 429</span>
+        </div>
+      
+          </section>
+
+          <section>
+            <h3>Raw Case JSON</h3>
+            <pre>{
+  &quot;traceId&quot;: &quot;H-COLDCHAIN-2026-05-B&quot;,
+  &quot;rawInput&quot;: {
+    &quot;hurdle_id&quot;: &quot;H-COLDCHAIN-2026-05-B&quot;,
+    &quot;startupConcept&quot;: &quot;agri cold-chain retrofit + predictive maintenance pods&quot;,
+    &quot;headline&quot;: &quot;Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits&quot;,
+    &quot;desc&quot;: &quot;The startup serves poultry and dairy corridors but cannot guarantee compressor spare parts lead-time. Regional checkpoints require inconsistent paper manifests and temperature logs from multiple systems.&quot;,
+    &quot;sector_hint&quot;: &quot;agriculture&quot;,
+    &quot;frictionCostMonthlyDZD&quot;: &quot;2 140 000 DZD (fuel detours + spoilage + emergency rental units)&quot;,
+    &quot;incidentSnapshot&quot;: &quot;May 2026: three delivery routes canceled after audit dispute over handwritten cleaning certificate despite ERP export being available.&quot;,
+    &quot;bureaucracyNoise&quot;: [
+      &quot;Veterinary inspection checklist revised without notice&quot;,
+      &quot;Transport authority requests stamped route declarations&quot;,
+      &quot;Insurer requires extra telemetry evidence before claim processing&quot;
+    ],
+    &quot;opsNoise&quot;: {
+      &quot;manual_reentries_per_week&quot;: 43,
+      &quot;avg_dispatch_delay_hours&quot;: 16,
+      &quot;systems&quot;: [
+        &quot;legacy ERP&quot;,
+        &quot;Excel&quot;,
+        &quot;paper ledger&quot;,
+        &quot;driver WhatsApp uploads&quot;
+      ]
+    },
+    &quot;freeform&quot;: &quot;Potential upside is huge, but current process maturity is low and local maintenance vendors demand prepayment in hard currency for critical parts.&quot;
+  },
+  &quot;mappedPayload&quot;: {
+    &quot;title&quot;: &quot;Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits&quot;,
+    &quot;description&quot;: &quot;The startup serves poultry and dairy corridors but cannot guarantee compressor spare parts lead-time. Regional checkpoints require inconsistent paper manifests and temperature logs from multiple systems.&quot;,
+    &quot;sector&quot;: &quot;agri&quot;,
+    &quot;frictionCost&quot;: &quot;2140000&quot;,
+    &quot;instance&quot;: &quot;May 2026: three delivery routes canceled after audit dispute over handwritten cleaning certificate despite ERP export being available.&quot;
+  },
+  &quot;normalizedOutput&quot;: {
+    &quot;ok&quot;: true,
+    &quot;normalized&quot;: {
+      &quot;title&quot;: &quot;Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits&quot;,
+      &quot;description&quot;: &quot;The startup serves poultry and dairy corridors but cannot guarantee compressor spare parts lead-time. Regional checkpoints require inconsistent paper manifests and temperature logs from multiple systems.&quot;,
+      &quot;sector&quot;: &quot;agri&quot;,
+      &quot;frictionCost&quot;: &quot;2140000&quot;,
+      &quot;instance&quot;: &quot;May 2026: three delivery routes canceled after audit dispute over handwritten cleaning certificate despite ERP export being available.&quot;
+    },
+    &quot;id&quot;: null
+  },
+  &quot;scoringOutput&quot;: {
+    &quot;candidateCount&quot;: 3,
+    &quot;sourceCount&quot;: 5,
+    &quot;candidates&quot;: [
+      {
+        &quot;id&quot;: &quot;exp-agri-01&quot;,
+        &quot;name&quot;: &quot;Yacine Mebarki&quot;,
+        &quot;title&quot;: &quot;Cold-Chain Operations Specialist&quot;,
+        &quot;sector&quot;: &quot;agri&quot;,
+        &quot;resonance&quot;: 10,
+        &quot;confidenceScore&quot;: null
+      },
+      {
+        &quot;id&quot;: &quot;exp-biz-01&quot;,
+        &quot;name&quot;: &quot;Imene Louafi&quot;,
+        &quot;title&quot;: &quot;Regulatory Operations Lead&quot;,
+        &quot;sector&quot;: &quot;biz&quot;,
+        &quot;resonance&quot;: 4,
+        &quot;confidenceScore&quot;: null
+      },
+      {
+        &quot;id&quot;: &quot;exp-log-01&quot;,
+        &quot;name&quot;: &quot;Nadim Khelifi&quot;,
+        &quot;title&quot;: &quot;Cross-Border Logistics Architect&quot;,
+        &quot;sector&quot;: &quot;log&quot;,
+        &quot;resonance&quot;: 2,
+        &quot;confidenceScore&quot;: null
+      }
+    ]
+  },
+  &quot;simulation&quot;: {
+    &quot;mode&quot;: &quot;deterministic-fallback&quot;,
+    &quot;confidenceScore&quot;: 1,
+    &quot;milestones&quot;: [
+      &quot;T+0-7d: build compliance map and isolate approval blockers for \&quot;Cold-chain startup cannot secure stable reefer spare-parts flow and faces fragmented veterinary/transport compliance audits\&quot;&quot;,
+      &quot;T+8-14d: launch dual-track remediation (documentation cleanup + operations quick wins)&quot;,
+      &quot;T+15-30d: assign lead execution to Yacine Mebarki (Cold-Chain Operations Specialist) with weekly measurable checkpoints&quot;,
+      &quot;T+31-45d: validate friction-cost reduction and lock governance controls for replication&quot;
+    ],
+    &quot;rationale&quot;: &quot;Top deterministic alignment points to agri substrate with resonance 10.&quot;,
+    &quot;liveAiError&quot;: &quot;{\&quot;error\&quot;:{\&quot;code\&quot;:429,\&quot;message\&quot;:\&quot;You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 26.421643282s.\&quot;,\&quot;status\&quot;:\&quot;RESOURCE_EXHAUSTED\&quot;,\&quot;details\&quot;:[{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.Help\&quot;,\&quot;links\&quot;:[{\&quot;description\&quot;:\&quot;Learn more about Gemini API quotas\&quot;,\&quot;url\&quot;:\&quot;https://ai.google.dev/gemini-api/docs/rate-limits\&quot;}]},{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.QuotaFailure\&quot;,\&quot;violations\&quot;:[{\&quot;quotaMetric\&quot;:\&quot;generativelanguage.googleapis.com/generate_content_free_tier_requests\&quot;,\&quot;quotaId\&quot;:\&quot;GenerateRequestsPerDayPerProjectPerModel-FreeTier\&quot;,\&quot;quotaDimensions\&quot;:{\&quot;location\&quot;:\&quot;global\&quot;,\&quot;model\&quot;:\&quot;gemini-2.5-flash\&quot;},\&quot;quotaValue\&quot;:\&quot;20\&quot;}]},{\&quot;@type\&quot;:\&quot;type.googleapis.com/google.rpc.RetryInfo\&quot;,\&quot;retryDelay\&quot;:\&quot;26s\&quot;}]}}&quot;
+  },
+  &quot;liveAiMeta&quot;: {
+    &quot;model&quot;: &quot;gemini-2.5-flash&quot;,
+    &quot;attempts&quot;: 3,
+    &quot;lastErrorCode&quot;: 429,
+    &quot;lastErrorStatus&quot;: &quot;429&quot;,
+    &quot;retryExhausted&quot;: true
+  },
+  &quot;timings&quot;: {
+    &quot;normalize&quot;: &quot;0.08ms&quot;,
+    &quot;score&quot;: &quot;0.19ms&quot;,
+    &quot;simulation&quot;: &quot;5390.22ms&quot;,
+    &quot;total&quot;: &quot;5390.49ms&quot;
+  }
+}</pre>
+          </section>
+        </div>
+      </details>
+    
+      <details class="case-card" >
+        <summary>
+          <div class="summary-left">
+            <span class="case-index">Case 3</span>
+            <h2>H-SUPPLYMESH-2026-05-C</h2>
+          </div>
+          <div class="summary-right">
+            <span class="mode-badge badge-agent">agent-enriched</span>
+            <span class="confidence">Confidence 0.95</span>
+            <span class="timing-pill">Total 7778.26ms</span>
+          </div>
+        </summary>
+
+        <div class="card-content">
+          <section class="timings-panel">
+            <h3>Execution Timings</h3>
+            <div class="timings-grid">
+              <div><small>Normalize</small><strong>0.13ms</strong></div>
+              <div><small>Score</small><strong>0.21ms</strong></div>
+              <div><small>Simulation</small><strong>7777.92ms</strong></div>
+              <div><small>Total</small><strong>7778.26ms</strong></div>
+            </div>
+          </section>
+
+          <section>
+            <h3>Milestone Timeline</h3>
+            <ul class="timeline-list">
+        <li class="timeline-row tone-cyan">
+          <span class="timeline-index">1</span>
+          <p>By Week 1, complete an audit of current supplier onboarding, mapping specific friction points in tax ID, bank KYC, and transport permit processes.</p>
+        </li>
+      
+        <li class="timeline-row tone-mint">
+          <span class="timeline-index">2</span>
+          <p>By Week 2, develop a standardized digital documentation checklist and submission protocol for all fiscal, banking, and permit requirements.</p>
+        </li>
+      
+        <li class="timeline-row tone-amber">
+          <span class="timeline-index">3</span>
+          <p>By Week 3, establish dedicated fast-track communication channels with key regulatory bodies (tax, banks, transport authorities) for expedited issue resolution.</p>
+        </li>
+      
+        <li class="timeline-row tone-violet">
+          <span class="timeline-index">4</span>
+          <p>By Week 4, implement a central digital platform for real-time supplier document submission and progress tracking across all onboarding stages.</p>
+        </li>
+      
+        <li class="timeline-row tone-rose">
+          <span class="timeline-index">5</span>
+          <p>By Week 5, create and integrate a proactive alert system for upcoming permit renewals and critical KYC data gaps.</p>
+        </li>
+      
+        <li class="timeline-row tone-indigo">
+          <span class="timeline-index">6</span>
+          <p>By Week 6, train internal procurement, finance, and operations teams on the new streamlined onboarding playbook and digital tools.</p>
+        </li>
+      
+        <li class="timeline-row tone-cyan">
+          <span class="timeline-index">7</span>
+          <p>By Week 8, successfully onboard 5-7 pilot suppliers using the new pathway, validating efficiency and refining procedures.</p>
+        </li>
+      
+        <li class="timeline-row tone-mint">
+          <span class="timeline-index">8</span>
+          <p>By Week 10, establish a continuous improvement feedback loop and monthly review process for sustained onboarding efficiency gains.</p>
+        </li>
+      </ul>
+          </section>
+
+          <section>
+            <h3>Rationale</h3>
+            <p class="rationale">Imene Louafi&#39;s expertise in designing multi-agency onboarding playbooks directly addresses the core issues of supplier-onboarding friction. Her experience with administrative loops, missing documentation, KYC delays, and permit dependency mapping provides a direct solution to the identified hurdle. The proposed pathway leverages her strengths to standardize documentation, streamline inter-agency communication, optimize digital workflows, and provide targeted training, thereby improving approval throughput and significantly reducing launch delays caused by tax ID mismatches, bank KYC lags, and cross-wilaya transport permit misalignments.</p>
+          </section>
+
+          <section>
+            <h3>Live AI Metadata</h3>
+            
+        <div class="meta-grid">
+          <span><strong>Model</strong>: gemini-2.5-flash</span>
+          <span><strong>Attempts</strong>: 1</span>
+          <span><strong>Last Code</strong>: n/a</span>
+          <span><strong>Status</strong>: n/a</span>
+        </div>
+      
+          </section>
+
+          <section>
+            <h3>Raw Case JSON</h3>
+            <pre>{
+  &quot;traceId&quot;: &quot;H-SUPPLYMESH-2026-05-C&quot;,
+  &quot;rawInput&quot;: {
+    &quot;hurdle_id&quot;: &quot;H-SUPPLYMESH-2026-05-C&quot;,
+    &quot;venture&quot;: &quot;distributed supplier mesh for light-industrial startups&quot;,
+    &quot;title&quot;: &quot;Supplier-onboarding friction: tax IDs mismatch, bank KYC lag, and cross-wilaya transport permits break launch timelines&quot;,
+    &quot;description_dirty&quot;: &quot;New startup operators trying to onboard 30+ suppliers are blocked by incomplete fiscal records, delayed bank account verification, and permit windows that do not align with procurement cycles.&quot;,
+    &quot;sector_hint&quot;: &quot;biz&quot;,
+    &quot;frictionCostMonthlyDZD&quot;: &quot;Approx. 1,760,000 DZD plus hidden opportunity cost&quot;,
+    &quot;last_real_case&quot;: &quot;March 2026: launch delayed 5 weeks after two strategic suppliers failed onboarding due to expired tax extract and missing notarized statutes.&quot;,
+    &quot;regAdminNoise&quot;: [
+      &quot;Bank compliance queue &gt; 14 business days&quot;,
+      &quot;Tax extract expiration confusion&quot;,
+      &quot;Permit dependency map undocumented&quot;,
+      &quot;Inconsistent chamber-of-commerce validation requirements&quot;
+    ],
+    &quot;meta_noise&quot;: {
+      &quot;attachments_count&quot;: 58,
+      &quot;email_threads&quot;: 19,
+      &quot;escalations&quot;: 6,
+      &quot;rejected_submissions&quot;: 9
+    },
+    &quot;rawTextBlob&quot;: &quot;\\nFounders currently rely on ad-hoc intermediaries to accelerate paperwork. Risk concentration is high because only two coordinators understand the full multi-agency sequence.&quot;
+  },
+  &quot;mappedPayload&quot;: {
+    &quot;title&quot;: &quot;Supplier-onboarding friction: tax IDs mismatch, bank KYC lag, and cross-wilaya transport permits break launch timelines&quot;,
+    &quot;description&quot;: &quot;New startup operators trying to onboard 30+ suppliers are blocked by incomplete fiscal records, delayed bank account verification, and permit windows that do not align with procurement cycles.&quot;,
+    &quot;sector&quot;: &quot;biz&quot;,
+    &quot;frictionCost&quot;: &quot;1760000&quot;,
+    &quot;instance&quot;: &quot;March 2026: launch delayed 5 weeks after two strategic suppliers failed onboarding due to expired tax extract and missing notarized statutes.&quot;
+  },
+  &quot;normalizedOutput&quot;: {
+    &quot;ok&quot;: true,
+    &quot;normalized&quot;: {
+      &quot;title&quot;: &quot;Supplier-onboarding friction: tax IDs mismatch, bank KYC lag, and cross-wilaya transport permits break launch timelines&quot;,
+      &quot;description&quot;: &quot;New startup operators trying to onboard 30+ suppliers are blocked by incomplete fiscal records, delayed bank account verification, and permit windows that do not align with procurement cycles.&quot;,
+      &quot;sector&quot;: &quot;biz&quot;,
+      &quot;frictionCost&quot;: &quot;1760000&quot;,
+      &quot;instance&quot;: &quot;March 2026: launch delayed 5 weeks after two strategic suppliers failed onboarding due to expired tax extract and missing notarized statutes.&quot;
+    },
+    &quot;id&quot;: null
+  },
+  &quot;scoringOutput&quot;: {
+    &quot;candidateCount&quot;: 2,
+    &quot;sourceCount&quot;: 5,
+    &quot;candidates&quot;: [
+      {
+        &quot;id&quot;: &quot;exp-biz-01&quot;,
+        &quot;name&quot;: &quot;Imene Louafi&quot;,
+        &quot;title&quot;: &quot;Regulatory Operations Lead&quot;,
+        &quot;sector&quot;: &quot;biz&quot;,
+        &quot;resonance&quot;: 14,
+        &quot;confidenceScore&quot;: null
+      },
+      {
+        &quot;id&quot;: &quot;exp-log-01&quot;,
+        &quot;name&quot;: &quot;Nadim Khelifi&quot;,
+        &quot;title&quot;: &quot;Cross-Border Logistics Architect&quot;,
+        &quot;sector&quot;: &quot;log&quot;,
+        &quot;resonance&quot;: 2,
+        &quot;confidenceScore&quot;: null
+      }
+    ]
+  },
+  &quot;simulation&quot;: {
+    &quot;mode&quot;: &quot;agent-enriched&quot;,
+    &quot;confidenceScore&quot;: 0.95,
+    &quot;milestones&quot;: [
+      &quot;By Week 1, complete an audit of current supplier onboarding, mapping specific friction points in tax ID, bank KYC, and transport permit processes.&quot;,
+      &quot;By Week 2, develop a standardized digital documentation checklist and submission protocol for all fiscal, banking, and permit requirements.&quot;,
+      &quot;By Week 3, establish dedicated fast-track communication channels with key regulatory bodies (tax, banks, transport authorities) for expedited issue resolution.&quot;,
+      &quot;By Week 4, implement a central digital platform for real-time supplier document submission and progress tracking across all onboarding stages.&quot;,
+      &quot;By Week 5, create and integrate a proactive alert system for upcoming permit renewals and critical KYC data gaps.&quot;,
+      &quot;By Week 6, train internal procurement, finance, and operations teams on the new streamlined onboarding playbook and digital tools.&quot;,
+      &quot;By Week 8, successfully onboard 5-7 pilot suppliers using the new pathway, validating efficiency and refining procedures.&quot;,
+      &quot;By Week 10, establish a continuous improvement feedback loop and monthly review process for sustained onboarding efficiency gains.&quot;
+    ],
+    &quot;rationale&quot;: &quot;Imene Louafi&#39;s expertise in designing multi-agency onboarding playbooks directly addresses the core issues of supplier-onboarding friction. Her experience with administrative loops, missing documentation, KYC delays, and permit dependency mapping provides a direct solution to the identified hurdle. The proposed pathway leverages her strengths to standardize documentation, streamline inter-agency communication, optimize digital workflows, and provide targeted training, thereby improving approval throughput and significantly reducing launch delays caused by tax ID mismatches, bank KYC lags, and cross-wilaya transport permit misalignments.&quot;
+  },
+  &quot;liveAiMeta&quot;: {
+    &quot;model&quot;: &quot;gemini-2.5-flash&quot;,
+    &quot;attempts&quot;: 1,
+    &quot;lastErrorCode&quot;: null,
+    &quot;lastErrorStatus&quot;: null
+  },
+  &quot;timings&quot;: {
+    &quot;normalize&quot;: &quot;0.13ms&quot;,
+    &quot;score&quot;: &quot;0.21ms&quot;,
+    &quot;simulation&quot;: &quot;7777.92ms&quot;,
+    &quot;total&quot;: &quot;7778.26ms&quot;
+  }
+}</pre>
+          </section>
+        </div>
+      </details>
+    </section>
+  </main>
+</body>
+</html>
